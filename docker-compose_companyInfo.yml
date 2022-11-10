@@ -1,0 +1,78 @@
+version: '3.7'
+
+services:
+  estockmarketapp-company-info-services:
+    image: karthiks7678/estockmarketappv1-company-info-services:0.0.2-SNAPSHOT
+    mem_limit: 700m
+    ports:
+     - "8180:8180"
+    restart: always
+    networks:
+     - estockmarketapp-network
+    depends_on:
+     - estockmarketapp-naming-server
+     - mysql
+     - rabbitmq
+    environment:
+      eureka.client.serviceurl.defaultZone: http://estockmarketapp-naming-server:8761/eureka
+      RDS_HOSTNAME: mysql
+      RDS_PORT: 3306
+      RDS_DB_NAME: companydb
+      RDS_USERNAME: companyuser
+      RDS_PASSWORD: companyuser
+      SPRING.ZIPKIN.BASEURL: http://zipkin-server:9411/
+      RABBIT_URI: amqp://guest:guest@rabbitmq:5672
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin
+
+  zipkin-server:
+    image: openzipkin/zipkin:2.23
+    mem_limit: 300m
+    ports:
+     - "9411:9411"
+    restart: always
+    environment:
+      RABBIT_URI: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+     - estockmarketapp-naming-server
+     - rabbitmq
+    networks:
+     - estockmarketapp-network
+
+  rabbitmq:
+    image: rabbitmq:3.8.12-management
+    mem_limit: 700m
+    ports:
+     - "5672:5672"
+     - "15672:15672"
+    restart: always
+    depends_on:
+     - estockmarketapp-naming-server
+    networks:
+     - estockmarketapp-network
+
+  estockmarketapp-naming-server:
+    image: karthiks7678/estockmarketappv1-netflix-eureka-naming-server:0.0.1-SNAPSHOT
+    mem_limit: 700m
+    ports:
+     - "8761:8761"
+    restart: always
+    networks:
+     - estockmarketapp-network
+
+  mysql:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    restart: always
+    networks:
+     - estockmarketapp-network
+    environment:
+      MYSQL_ROOT_PASSWORD: companyuser
+      MYSQL_USER: companyuser
+      MYSQL_PASSWORD: companyuser
+      MYSQL_DATABASE: companydb
+
+networks:
+  estockmarketapp-network:

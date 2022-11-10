@@ -1,6 +1,19 @@
 version: '3.7'
 
 services:
+  estockmarketapp-api-gateway:
+    image: karthiks7678/estockmarketappv1-api-gateway:0.0.2-SNAPSHOT
+    mem_limit: 700m
+    ports:
+     - "8765:8765"
+    restart: always
+    networks:
+     - estockmarketapp-network
+    depends_on:
+     - estockmarketapp-naming-server
+    environment:
+      eureka.client.serviceurl.defaultZone: http://estockmarketapp-naming-server:8761/eureka
+      
   estockmarketapp-company-info-services:
     image: karthiks7678/estockmarketappv1-company-info-services:0.0.2-SNAPSHOT
     mem_limit: 700m
@@ -26,9 +39,95 @@ services:
       SPRING_ZIPKIN_SENDER_TYPE: rabbit
       SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin
 
+  estockmarketapp-stock-info-services:
+    image: karthiks7678/estockmarketappv1-stock-info-services:0.0.2-SNAPSHOT
+    mem_limit: 700m
+    ports:
+     - "8280:8280"
+    restart: always
+    networks:
+     - estockmarketapp-network
+    depends_on:
+     - estockmarketapp-naming-server
+     - mysql
+     - rabbitmq
+    environment:
+      eureka.client.serviceurl.defaultZone: http://estockmarketapp-naming-server:8761/eureka
+      RDS_HOSTNAME: mysql
+      RDS_PORT: 3306
+      RDS_DB_NAME: companydb
+      RDS_USERNAME: companyuser
+      RDS_PASSWORD: companyuser
+      SPRING.ZIPKIN.BASEURL: http://zipkin-server:9411/
+      RABBIT_URI: amqp://guest:guest@rabbitmq:5672
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin
+
+  estockmarketapp-api-estock-message-queue-services:
+    image: karthiks7678/estockmarketappv1-message-queue-services:0.0.3-SNAPSHOT
+    mem_limit: 700m
+    ports:
+     - "8380:8380"
+    restart: always  
+    networks:
+     - estockmarketapp-network
+    depends_on:
+     - estockmarketapp-naming-server
+     - rabbitmq
+    environment:
+      eureka.client.serviceurl.defaultZone: http://estockmarketapp-naming-server:8761/eureka
+      SPRING.ZIPKIN.BASEURL: http://zipkin-server:9411/
+      RABBIT_URI: amqp://guest:guest@rabbitmq:5672
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin
+
+  estockmarketapp-api-estock-market-info-reader:
+    image: karthiks7678/estockmarketappv1-estock-market-info-reader:0.0.2-SNAPSHOT
+    mem_limit: 700m
+    ports:
+     - "8382:8382"
+    restart: always  
+    networks:
+     - estockmarketapp-network
+    depends_on:
+     - estockmarketapp-naming-server
+    environment:
+      eureka.client.serviceurl.defaultZone: http://estockmarketapp-naming-server:8761/eureka
+      SPRING.ZIPKIN.BASEURL: http://zipkin-server:9411/
+      RABBIT_URI: amqp://guest:guest@rabbitmq:5672
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin
+
+  estockmarketapp-api-security:
+    image: karthiks7678/estockmarketappv1-security-service:0.0.2-SNAPSHOT
+    mem_limit: 700m
+    ports:
+     - "8100:8100"
+    restart: always
+    networks:
+     - estockmarketapp-network
+    depends_on:
+     - estockmarketapp-naming-server
+     - mysql
+    environment:
+      eureka.client.serviceurl.defaultZone: http://estockmarketapp-naming-server:8761/eureka
+      RDS_HOSTNAME: mysql
+      RDS_PORT: 3306
+      RDS_DB_NAME: companydb
+      RDS_USERNAME: companyuser
+      RDS_PASSWORD: companyuser
+      SPRING.ZIPKIN.BASEURL: http://zipkin-server:9411/
+      RABBIT_URI: amqp://guest:guest@rabbitmq:5672
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin
+
   zipkin-server:
     image: openzipkin/zipkin:2.23
-    mem_limit: 300m
+    mem_limit: 500m
     ports:
      - "9411:9411"
     restart: always
@@ -54,7 +153,7 @@ services:
 
   estockmarketapp-naming-server:
     image: karthiks7678/estockmarketappv1-netflix-eureka-naming-server:0.0.1-SNAPSHOT
-    mem_limit: 700m
+    mem_limit: 800m
     ports:
      - "8761:8761"
     restart: always
